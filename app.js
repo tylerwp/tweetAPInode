@@ -15,7 +15,7 @@ var client = new Twitter({
 });
 
 // Serving static files in Express - https://expressjs.com/en/starter/static-files.html
-app.use(express.static(__dirname + '/'));
+app.use(express.static(__dirname + '/public'));
 
 
 app.get('/tylerwp', function (req, res) {   
@@ -27,9 +27,9 @@ app.get('/tylerwp', function (req, res) {
             //console.log(tweets);
             var htmlOutput = "";
             // temporary html dom for testing
-            var htmlTemplate = '<html><head><link rel="stylesheet" href="css/global.css"></head><body>';
+            var htmlTemplate = "";
             // get template file and store it in var
-            fs.readFile(__dirname + '/TimelineView.html', 'utf8', function (err, html) {                
+            fs.readFile(__dirname + '/views/TimelineView.html', 'utf8', function (err, html) {                
                 htmlTemplate += html;
                 // loop through tweets and render html using Mustache and the template 
                 for (var i = 0; i < tweets.length; i++) {
@@ -39,10 +39,10 @@ app.get('/tylerwp', function (req, res) {
                         created_at: tweets[i].created_at
                     };
                     var output = Mustache.render(htmlTemplate, tw);
-                    htmlOutput += output + '</body></html>';
+                    htmlOutput += output;
 
                 }
-                res.send(htmlOutput);
+                res.send('<html><head><link href="https://fonts.googleapis.com/css?family=Work+Sans:400,600" rel="stylesheet" type="text/css"><link rel="stylesheet" href="css/global.css"></head><body>' + htmlOutput + '</body></html>');
             });
 
 
