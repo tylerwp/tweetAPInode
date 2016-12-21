@@ -1,7 +1,7 @@
 'use strict';
 var cfg = require('./config.json');//config for twitter API
 var express = require('express');
-var Mustache = require('mustache');
+var Handlebars = require('handlebars');
 var Twitter = require('twitter');
 var fs = require('fs');
 var twitter = new Twitter();
@@ -31,15 +31,17 @@ app.get('/tylerwp', function (req, res) {
             // get template file and store it in var
             fs.readFile(__dirname + '/views/TimelineView.html', 'utf8', function (err, html) {                
                 htmlTemplate += html;
-                // loop through tweets and render html using Mustache and the template 
+                // loop through tweets and render html using handlebars and the template 
                 for (var i = 0; i < tweets.length; i++) {
                     
                     var tw = {
                         text: tweets[i].text,
                         created_at: tweets[i].created_at
                     };
-                    var output = Mustache.render(htmlTemplate, tw);
-                    htmlOutput += output;
+                    // here we take the html template and add the data                 
+
+                  var template = Handlebars.compile(htmlTemplate);
+                  htmlOutput += template(tw);
 
                 }
                 res.send('<html><head><link href="https://fonts.googleapis.com/css?family=Work+Sans:400,600" rel="stylesheet" type="text/css"><link rel="stylesheet" href="css/global.css"></head><body>' + htmlOutput + '</body></html>');
