@@ -30,7 +30,13 @@ router.get('/following/:getJson?', function (req, res, next) {
             var followingUsers = '';
             for (var i = 0; i < follow.users.length; i++) {
                 var followingView = hbs.handlebars.compile('{{> followingView}}');
-                var userFollowing = followingView({ userName: follow.users[i].name, userID: follow.users[i].screen_name });
+                var userFollowing = followingView(
+                    {
+                        userName: follow.users[i].name,
+                        userID: follow.users[i].screen_name,
+                         profile_image_url: follow.users[i].profile_image_url
+                    }
+                );
                 followingUsers += userFollowing;
             }
             //send json or html depending on route parameter
@@ -75,6 +81,7 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
                     created_at_str: usrMessages[i].created_at,
                     created_at: Date.parse(usrMessages[i].created_at),
                     sender: usrMessages[i].sender_screen_name,
+                    profile_image_url:usrMessages[i].sender.profile_image_url,
                     type: 'sender'
                 })
             }
@@ -90,6 +97,7 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
                             created_at_str: usrMessages[i].created_at,
                             created_at: Date.parse(usrMessages[i].created_at),
                             sender: usrMessages[i].sender_screen_name,
+                            profile_image_url:usrMessages[i].sender.profile_image_url,
                             type: 'me'
                         })
                     }
@@ -102,9 +110,9 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
 
                         if (allMessages[i].type == 'me') {
                             //// return results                        
-                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str, me: '--me' });
+                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str,profile_image_url:allMessages[i].profile_image_url, me: '--me' });
                         } else {
-                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str, me: '' });
+                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str,profile_image_url:allMessages[i].profile_image_url, me: '' });
                         }
                         var test = allMessages[i];
                     }
@@ -117,31 +125,54 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
             });
 
 
-
-
         } else {
             console.log(error);
         }
     });
 
 
-
-
-
-
-
-
 });
 
 
+//route for user timeline
+router.get('/userTimeline/:getJson?', function (req, res, next) {
+
+    //https://dev.twitter.com/rest/reference
+    var client = new Twitter(twitterConfig);
+    var getJson = req.params.getJson;
+    var timelineTweets = '';
+    var params = { screen_name: twitterConfig.screen_name, count: 5 };//set params for twitter API
+    var htmlOutput = "";
+    // call get to statuses/user_timeline
+    client.get('statuses/user_timeline', params, function (error, tweets, response) {
+        if (!error) {
+            for (var i = 0; i < tweets.length; i++) {
+                var timelineView = hbs.handlebars.compile('{{> timelineView}}');
+                timelineTweets += timelineView({
+                    text: tweets[i].text,
+                    created_at: tweets[i].created_at,
+                    name: tweets[i].user.name,
+                    screen_name: tweets[i].user.screen_name,
+                    favorite_count: tweets[i].favorite_count,
+                    retweet_count: tweets[i].retweet_count,
+                    profile_image_url: tweets[i].user.profile_image_url
+                });
+            }
+
+            if (getJson == 'json') {
+                res.send(tweets);
+            } else {
+                res.send(timelineTweets);
+            }
+
+        } else {
+            console.log(error);
+        }
+    });
+    //---------------------------------------------------------------------------------------------------------
+});
 
 
-
-//hbs.registerHelper('timeLine', '{{> timelineView}}');
-
-//hbs.registerHelper('following', '<strong>test test test</strong>');
-
-//hbs.registerHelper('directMessage', '<strong>test test test</strong>');
 
 //twitter stream
 //socket io 
@@ -155,47 +186,6 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
 //});
 
 
-
-
-function getTimeline() {
-    // call twitter API
-
-    // ISSUE.... not getting rendered to the view as its non-blocking---------------------------------
-    var params = { screen_name: 'tylerwp' };//set params for twitter API
-    var htmlOutput = "";
-    // call get to statuses/user_timeline
-    client.get('statuses/user_timeline', params, function (error, tweets, response) {
-        if (!error) {
-            console.log('Connected...Last tweet: ' + tweets[0].created_at);
-
-            // temporary html dom for testing
-            var htmlTemplate = "";
-            // get template file and store it in var           
-            fs.readFile(path.join(__dirname, '../views/TimelineView.html'), 'utf8', function (err, html) {
-                htmlTemplate += html;
-                // loop through tweets and render html using handlebars and the template 
-                for (var i = 0; i < tweets.length; i++) {
-
-                    var tw = {
-                        text: tweets[i].text,
-                        created_at: tweets[i].created_at
-                    };
-                    // here we take the html template and add the data                 
-
-                    var template = hbs.handlebars.compile(htmlTemplate);
-                    htmlOutput += template(tw);
-
-                }
-
-            });
-            return htmlOutput;
-
-        } else {
-            console.log(error);
-        }
-    });
-    //---------------------------------------------------------------------------------------------------------
-}
 
 
 module.exports = router;

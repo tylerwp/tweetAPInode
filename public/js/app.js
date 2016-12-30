@@ -16,6 +16,14 @@ $(document).ready(function () {
         jQuery("time.timeago").timeago();
     });
 
+     $.get('/userTimeline', function (data, status) {
+        $('.app--tweet--list').html(data);
+        //console.log(data);
+    }).done(function () {
+        // update time ago
+       // jQuery("time.timeago").timeago();
+    });
+
     
 
 });
