@@ -7,13 +7,22 @@ var fs = require('fs');
 var path = require('path');
 
 
-//var client = new Twitter(twitterConfig);
-
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-
-    res.render('index', {});
+    // API call to twitter to get user info before render
+    var client = new Twitter(twitterConfig);
+     var params = { screen_name: twitterConfig.twitter_screen_name };
+     client.get('/users/show', params, function (error, user, response) {
+         //set background profile image
+         var profile_banner_url = 'style="background-image:url(' + user.profile_banner_url + ')"';
+         if(!error){
+             res.render('index', {user:user.screen_name,profile_background_image_url:profile_banner_url});
+         }else{
+            console.log(error);
+         }
+     });
+    
 });
 
 //route for user following
@@ -56,13 +65,9 @@ router.get('/following/:getJson?', function (req, res, next) {
 //route for user direct messages
 router.get('/directMsg/:getJson?', function (req, res, next) {
     //get twitter user direct messages
-    /*ISSUE...
-    
-        need to call both GET direct_messages, GET direct_messages/sent
-        create new array from them then sort by the new array by date
-        //sort the by date -> array.sort(function(a,b){return a.getTime() - b.getTime()});
-
-    */
+    //call both GET direct_messages, GET direct_messages/sent
+    //create new array from results then sort by date
+      
     //https://dev.twitter.com/rest/reference
     var client = new Twitter(twitterConfig);
     var getJson = req.params.getJson;
@@ -103,7 +108,7 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
                     }
 
                     // sort and return results
-                    allMessages.sort(function (a, b) { return a.created_at - b.created_at });
+                    allMessages.sort(function (a, b) { return b.created_at - a.created_at });
                     for (var i = 0; i < allMessages.length; i++) {
                         //create view
                         var messageView = hbs.handlebars.compile('{{> messageView}}');
