@@ -17,7 +17,7 @@ router.get('/', function (req, res, next) {
          //set background profile image
          var profile_banner_url = 'style="background-image:url(' + user.profile_banner_url + ')"';
          if(!error){
-             res.render('index', {user:user.screen_name,profile_background_image_url:profile_banner_url});
+             res.render('index', {user:user.screen_name,profile_background_image_url:profile_banner_url,profile_image_url:user.profile_image_url,friends_count:user.friends_count});
          }else{
             console.log(error);
          }
