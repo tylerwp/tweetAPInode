@@ -7,6 +7,7 @@ var Twitter = require('twitter');
 var http = require('http').Server(app);
 var socketIO = require('socket.io')(http);
 
+
 var client = new Twitter(cfg);
 
 // routes
@@ -19,7 +20,6 @@ app.use(express.static(__dirname + '/public'));
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
-
 
 app.use('/', index);
 

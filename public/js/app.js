@@ -47,11 +47,17 @@ $(document).ready(function () {
 
     $('.button-primary').on('click',function(event){
          event.preventDefault();
-         postTweet($('#tweet-textarea').value);
+         postTweet($('#tweet-textarea').val());
     });
    
     function postTweet(message){
         console.log(message);
+        $.post('/statuses/update/',{tweet:message},function(){
+
+        })
+        .done(function(){
+            //update timeline view
+        });
     }
 
 

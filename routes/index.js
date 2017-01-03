@@ -5,24 +5,29 @@ var hbs = require('hbs');
 var Twitter = require('twitter');
 var fs = require('fs');
 var path = require('path');
+var bodyParser = require('body-parser');
+var querystring = require("querystring");
 
+//body-parser extracts the entire body portion of an incoming request stream and exposes it on req.body as something easier to interface with.
+router.use(bodyParser.json()); // support json encoded bodies
+router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
     // API call to twitter to get user info before render
     var client = new Twitter(twitterConfig);
-     var params = { screen_name: twitterConfig.twitter_screen_name };
-     client.get('/users/show', params, function (error, user, response) {
-         //set background profile image
-         var profile_banner_url = 'style="background-image:url(' + user.profile_banner_url + ')"';
-         if(!error){
-             res.render('index', {user:user.screen_name,profile_background_image_url:profile_banner_url,profile_image_url:user.profile_image_url,friends_count:user.friends_count});
-         }else{
+    var params = { screen_name: twitterConfig.twitter_screen_name };
+    client.get('/users/show', params, function (error, user, response) {
+        //set background profile image
+        var profile_banner_url = 'style="background-image:url(' + user.profile_banner_url + ')"';
+        if (!error) {
+            res.render('index', { user: user.screen_name, profile_background_image_url: profile_banner_url, profile_image_url: user.profile_image_url, friends_count: user.friends_count });
+        } else {
             console.log(error);
-         }
-     });
-    
+        }
+    });
+
 });
 
 //route for user following
@@ -43,7 +48,7 @@ router.get('/following/:getJson?', function (req, res, next) {
                     {
                         userName: follow.users[i].name,
                         userID: follow.users[i].screen_name,
-                         profile_image_url: follow.users[i].profile_image_url
+                        profile_image_url: follow.users[i].profile_image_url
                     }
                 );
                 followingUsers += userFollowing;
@@ -67,7 +72,7 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
     //get twitter user direct messages
     //call both GET direct_messages, GET direct_messages/sent
     //create new array from results then sort by date
-      
+
     //https://dev.twitter.com/rest/reference
     var client = new Twitter(twitterConfig);
     var getJson = req.params.getJson;
@@ -86,7 +91,7 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
                     created_at_str: usrMessages[i].created_at,
                     created_at: Date.parse(usrMessages[i].created_at),
                     sender: usrMessages[i].sender_screen_name,
-                    profile_image_url:usrMessages[i].sender.profile_image_url,
+                    profile_image_url: usrMessages[i].sender.profile_image_url,
                     type: 'sender'
                 })
             }
@@ -102,7 +107,7 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
                             created_at_str: usrMessages[i].created_at,
                             created_at: Date.parse(usrMessages[i].created_at),
                             sender: usrMessages[i].sender_screen_name,
-                            profile_image_url:usrMessages[i].sender.profile_image_url,
+                            profile_image_url: usrMessages[i].sender.profile_image_url,
                             type: 'me'
                         })
                     }
@@ -115,9 +120,9 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
 
                         if (allMessages[i].type == 'me') {
                             //// return results                        
-                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str,profile_image_url:allMessages[i].profile_image_url, me: '--me' });
+                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str, profile_image_url: allMessages[i].profile_image_url, me: '--me' });
                         } else {
-                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str,profile_image_url:allMessages[i].profile_image_url, me: '' });
+                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str, profile_image_url: allMessages[i].profile_image_url, me: '' });
                         }
                         var test = allMessages[i];
                     }
@@ -177,6 +182,24 @@ router.get('/userTimeline/:getJson?', function (req, res, next) {
     //---------------------------------------------------------------------------------------------------------
 });
 
+router.post('/statuses/update/', function (req, res) {
+    var client = new Twitter(twitterConfig);
+    //URL encode tweet
+    //var tweet = querystring.stringify({query:req.body.tweet + ' #testingAPI'});
+    var tweet = req.body.tweet + ' #testingAPI';
+    var params = { status: tweet };//set params for twitter API
+    //console.log(req.body);
+    //https://dev.twitter.com/rest/reference/post/statuses/update
+
+    //!!! Issue sending multiple tweets, could be ajax
+
+    client.post('statuses/update', params, function (error, tweet, response) {
+        if (error) throw error;
+        console.log(tweet);  // Tweet body. 
+        console.log(response);  // Raw response object. 
+    });
+
+});
 
 
 //twitter stream
