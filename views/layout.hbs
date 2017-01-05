@@ -36,22 +36,6 @@
 <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
 <script src="/js/jquery.timeago.js" type="text/javascript"></script>
 <script src="/js/app.js"></script>
- <script>
-  var socket = io();
-  socket.on('tweet', function(msg){
-      var tweet = msg.text;
-      //console.log(msg);
-      // remove class from all elements
-      //$('#messages li').removeClass('alert-success');
-      // $('#messages li').addClass('alert-info');       
-     //  if(msg.entities.media !== undefined ){
-      //      var image = msg.entities.media[0].media_url;
-      //      tweet += '<img src="' + image + '" width="90px" >';
-     //  }
-      $('.app--tweet--list').prepend($('<li class="alert alert-success">').html(msg));
-
-  });
-</script>
 
 </body>
 </html>

@@ -1,3 +1,5 @@
+'use strict';
+
 var cfg = require('./config.json');
 var express = require('express');
 var path = require('path');
@@ -7,12 +9,10 @@ var Twitter = require('twitter');
 var http = require('http').Server(app);
 var socketIO = require('socket.io')(http);
 
-
 var client = new Twitter(cfg);
 
 // routes
 var index = require('./routes/index');
-
 
 // Serving static files in Express - https://expressjs.com/en/starter/static-files.html
 app.use(express.static(__dirname + '/public'));
@@ -21,42 +21,41 @@ app.use(express.static(__dirname + '/public'));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 
+// register handlebars partials
+hbs.registerPartials(path.join(__dirname, './views/partials'));
+
+//setup route
 app.use('/', index);
 
+// start http server
 http.listen(3333, function () {
     console.log('App listing on 3333');
 });
 
-hbs.registerPartials(path.join(__dirname, './views/partials'), function (res) {
-    // var test = res;
-    //  var timel = hbs.handlebars.compile('{{> timelineView}}');
-    //  var outt = timel({text:'hello!'});
-});
 
-
+// socket.io for realtime updates ----------------------------------------------------------------
+// provide timeline updates when a new tweet is created.
 socketIO.on('connection', function (socket) {
-    console.log('a user connected');
-    
+    console.log('socket.io: a user connected');
+
 });
 
+//twitter stream https://dev.twitter.com/streaming/reference/post/statuses/filter    
 
-function testStream() {
+var params = { follow: cfg.twitter_userID };
+var stream = client.stream('statuses/filter', params);
+stream.on('data', function (event) {
+    console.log('received twitter stream data.');
+    socketIO.emit('tweet', event);
+    console.log('socket.io tweet emit sent: ' + event.text);
+});
 
-    //twitter stream https://dev.twitter.com/streaming/reference/post/statuses/filter
-    //socket io 
-    //var stream = client.stream('user', {Name: 'tylerwp'});
-    var stream = client.stream('statuses/filter', { track: 'lego' });
-    stream.on('data', function (event) {
-        // console.log(event && event.text);
-        var timelineView = hbs.handlebars.compile('{{> timelineView}}');
-        socketIO.emit('tweet', timelineView({ text: event.text }));
-        //console.log(timelineView({text:event.text}));
-    });
+stream.on('error', function (error) {
+    console.log(error);
+});
+// ----------------------------------------------------------------------------------------------
 
-    stream.on('error', function (error) {
-        console.log(error);
-    });
-}
+
 
 
 

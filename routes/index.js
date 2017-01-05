@@ -1,10 +1,10 @@
+'use strict';
+
 var twitterConfig = require('../config.json');
 var express = require('express');
 var router = express.Router();
 var hbs = require('hbs');
 var Twitter = require('twitter');
-var fs = require('fs');
-var path = require('path');
 var bodyParser = require('body-parser');
 var querystring = require("querystring");
 
@@ -38,11 +38,10 @@ router.get('/following/:getJson?', function (req, res, next) {
     var getJson = req.params.getJson;
     var params = { screen_name: twitterConfig.screen_name, count: 5 };
     client.get('friends/list', params, function (error, follow, response) {
-        if (!error) {
-            //console.log(follow);           
+        if (!error) {                       
             //get hbs partials and return view for each
             var followingUsers = '';
-            for (var i = 0; i < follow.users.length; i++) {
+            for(var i = 0; i < follow.users.length; i++) {
                 var followingView = hbs.handlebars.compile('{{> followingView}}');
                 var userFollowing = followingView(
                     {
@@ -72,18 +71,18 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
     //get twitter user direct messages
     //call both GET direct_messages, GET direct_messages/sent
     //create new array from results then sort by date
+    // filter messages down to last correspondence 
 
     //https://dev.twitter.com/rest/reference
     var client = new Twitter(twitterConfig);
     var getJson = req.params.getJson;
     var params = { count: 5 };
     var allMessages = [];
-    var returnMessages = '';
+    var returnMessages = ['',''];
 
     // get messages received and add them to message object
     client.get('direct_messages', params, function (error, usrMessages, response) {
         if (!error) {
-
 
             for (var i = 0; i < usrMessages.length; i++) {
                 allMessages.push({
@@ -92,11 +91,12 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
                     created_at: Date.parse(usrMessages[i].created_at),
                     sender: usrMessages[i].sender_screen_name,
                     profile_image_url: usrMessages[i].sender.profile_image_url,
+                    recipient:usrMessages[i].recipient_screen_name,
                     type: 'sender'
                 })
             }
 
-            //get messages sent and add then to message object
+            //get messages sent and add them to message object
             client.get('direct_messages/sent', params, function (error, usrMessages, response) {
 
                 if (!error) {
@@ -108,23 +108,54 @@ router.get('/directMsg/:getJson?', function (req, res, next) {
                             created_at: Date.parse(usrMessages[i].created_at),
                             sender: usrMessages[i].sender_screen_name,
                             profile_image_url: usrMessages[i].sender.profile_image_url,
+                            recipient:usrMessages[i].recipient_screen_name,
                             type: 'me'
                         })
                     }
 
                     // sort and return results
                     allMessages.sort(function (a, b) { return b.created_at - a.created_at });
-                    for (var i = 0; i < allMessages.length; i++) {
+
+                    //filter out message to show only the last correspondence and update "Conversation with" in view.
+                    // get last message
+                        // if type = sender then filter by sender name
+                        // else filter by recipient
+                    var conversationWith = '';
+                    if(allMessages[0].type == 'sender'){
+                        conversationWith = allMessages[0].sender;
+                    }else{
+                        conversationWith = allMessages[0].recipient;
+                    }
+                    // add name to return array.
+                    returnMessages[1] = conversationWith;
+
+                    var filteredMessages = allMessages.filter(function(value){
+                        if(value.type == 'sender'){
+                            if(value.sender == conversationWith){
+                                return true;
+                            }else{
+                                return false;
+                            }
+                        }else{
+                            if(value.recipient == conversationWith){
+                                return true;
+                            }else{
+                                return false;
+                            }
+                        }
+                    });
+
+                    for (var i = 0; i < filteredMessages.length; i++) {
                         //create view
                         var messageView = hbs.handlebars.compile('{{> messageView}}');
 
-                        if (allMessages[i].type == 'me') {
+                        if (filteredMessages[i].type == 'me') {
                             //// return results                        
-                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str, profile_image_url: allMessages[i].profile_image_url, me: '--me' });
+                            returnMessages[0] += messageView({ message: filteredMessages[i].text, created_at: filteredMessages[i].created_at_str, profile_image_url: filteredMessages[i].profile_image_url, me: '--me' });
                         } else {
-                            returnMessages += messageView({ message: allMessages[i].text, created_at: allMessages[i].created_at_str, profile_image_url: allMessages[i].profile_image_url, me: '' });
+                            returnMessages[0] += messageView({ message: filteredMessages[i].text, created_at: filteredMessages[i].created_at_str, profile_image_url: filteredMessages[i].profile_image_url, me: '' });
                         }
-                        var test = allMessages[i];
+                        var test = filteredMessages[i];
                     }
                     res.send(returnMessages);
 
@@ -179,41 +210,27 @@ router.get('/userTimeline/:getJson?', function (req, res, next) {
             console.log(error);
         }
     });
-    //---------------------------------------------------------------------------------------------------------
+    
 });
 
+// receive post for new tweet status update.
 router.post('/statuses/update/', function (req, res) {
     var client = new Twitter(twitterConfig);
-    //URL encode tweet
-    //var tweet = querystring.stringify({query:req.body.tweet + ' #testingAPI'});
-    var tweet = req.body.tweet + ' #testingAPI';
+    
+    var tweet = req.body.tweet;
     var params = { status: tweet };//set params for twitter API
-    //console.log(req.body);
+    
     //https://dev.twitter.com/rest/reference/post/statuses/update
 
-    //!!! Issue sending multiple tweets, could be ajax
-
     client.post('statuses/update', params, function (error, tweet, response) {
-        if (error) throw error;
-        console.log(tweet);  // Tweet body. 
-        console.log(response);  // Raw response object. 
+        if (error) throw error;         
+        console.log('tweet sent');
     });
 
+    // The request has been fulfilled
+      res.status(201).json({tweet:'sent'});
+
 });
-
-
-//twitter stream
-//socket io 
-//var stream = client.stream('statuses/filter', {track: 'lego'});
-//stream.on('data', function(event) {
-// console.log(event && event.text);
-//});
-
-//stream.on('error', function(error) {
-//   console.log(error);
-//});
-
-
 
 
 module.exports = router;
