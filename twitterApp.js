@@ -55,7 +55,20 @@ stream.on('error', function (error) {
 });
 // ----------------------------------------------------------------------------------------------
 
+//handle errors
+app.use(function (err, req, res, next) {
+    console.error(err.stack);
+    var fiveOO = hbs.handlebars.compile('{{> 500}}');
+    var HTML = fiveOO({ page: req.originalUrl });
+    res.status(500).send(HTML);
+});
 
+//handle 404
+app.use(function (req, res, next) {
+    var fourOfour = hbs.handlebars.compile('{{> 404}}');
+    var HTML = fourOfour({ page: req.originalUrl });
+    res.status(404).send(HTML);
+});
 
 
 
